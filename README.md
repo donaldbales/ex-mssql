@@ -1,2 +1,2 @@
 # ex-mssql
-Sample Microsoft SQL Server application used to characterize data
+Sample SQL Server application used to characterize data

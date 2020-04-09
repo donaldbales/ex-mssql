@@ -1,3 +1,7 @@
+.DS_Store
+procedures.sql
+prod*
+
 # Logs
 logs
 *.log

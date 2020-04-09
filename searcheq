@@ -1,0 +1,3 @@
+#!/bin/bash
+
+tsc && node src/index -t search -s "${1}" > "${1}eq.txt" 2> "${1}eq.sql"
