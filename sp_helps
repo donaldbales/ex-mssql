@@ -1,0 +1,3 @@
+#!/bin/bash
+
+./loc < descs.sql > sp_helps.txt

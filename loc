@@ -1,0 +1,7 @@
+#!/bin/bash  
+
+# mssql -s localhost -u sa -p 'reallyStrongPwd123' -d develop -e -T 3600000
+
+mssql -c ./loc.json
+
+

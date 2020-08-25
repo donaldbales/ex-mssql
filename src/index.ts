@@ -89,8 +89,8 @@ async function databases(logger: Logger, conn: Connection): Promise<any> {
     SELECT name 
     FROM   master.dbo.sysdatabases 
     WHERE name NOT IN ('master', 'tempdb', 'model', 'msdb')
-    AND   name like 'H70_%'
-    AND   name != 'H70_AUDITTRAIL'
+/*    AND   name like 'H70_%'
+    AND   name != 'H70_AUDITTRAIL' */
     ORDER BY 1`;
 
   try {
@@ -203,13 +203,13 @@ async function descs(logger: Logger, conn: Connection, tables: any): Promise<any
   let i: number = 0;
   for (const tableName of tables.keys()) {
     let query: string;
-    query = `sp_help "${tableName}"`;
+    query = `sp_help "${tableName}";`;
 
-    console.error(query);
+    console.error(`\n${query}`);
 
     try {
       const rows: any = await sql.executeDML(logger, conn, query, []);
-      console.error(rows);
+      // console.log(`rows=${inspect(rows)}`);
       
       let desc: string = '';
       for (const row of rows) {
@@ -218,10 +218,10 @@ async function descs(logger: Logger, conn: Connection, tables: any): Promise<any
       }
       results.tables[tableName] = desc;
     } catch (err) {
-      // console.error(inspect(err));
+      console.error(`err=${inspect(err)}`);
       results.tables[tableName] = err.error.message;
     }
-    break;
+    // break;
   }
   return results;
 }
@@ -230,12 +230,12 @@ async function histograms(logger: Logger, conn: Connection, tables: any): Promis
   const results: any = { tables: {} }; 
 
   for (const tableName of tables.keys()) {
-    console.error(`* ${tableName}`);
+    console.error(`/** ${tableName} */`);
     
     results.tables[tableName] = [];
 
     for (const columnName of tables.get(tableName)) {
-      console.error(`** ${columnName}`);
+      console.error(`/*** ${columnName} */`);
       
       if (columnName === 'next_val') {
         continue;
@@ -372,7 +372,14 @@ export default async function main(...args: any[]): Promise<any> {
   let results: any;
   const cla: any = argz(args);
   const tasks: any = cla.tasks;
-  const conn: Connection = await sql.connect(logger);
+  
+  let conn = null;  
+  try {
+    conn = await sql.connect(logger);
+    logger.info(`${moduleName}#${methodName}: Connected...`);
+  } catch (err) {
+    logger.error(`${moduleName}#${methodName}: ${inspect(err)}`);
+  }
   
 /*  
   if (tasks.ids) {    
@@ -410,7 +417,9 @@ export default async function main(...args: any[]): Promise<any> {
     }
   }
 */
+
   if (tasks.counts) {    
+    console.log(`CATALOG.SCHEMA.TABLE\tCOUNT`);
     results = await databases(logger, conn);
     const tableCatalogs: any[] = [];
     for (const result of results) {
@@ -458,8 +467,8 @@ export default async function main(...args: any[]): Promise<any> {
     }
     
     for (const tableCatalog of tableCatalogs) {
-      console.log(`\fselect '${tableCatalog}' TABLE_CATALOG;\n`);
-      console.log(`\nuse ${tableCatalog};\n`);
+      console.error(`\nselect '${tableCatalog}' TABLE_CATALOG;\n`);
+      console.error(`\nuse ${tableCatalog};\n`);
       
       results = await sql.executeDML(logger, conn, `use ${tableCatalog}`, []);
       
@@ -482,18 +491,19 @@ export default async function main(...args: any[]): Promise<any> {
       }
       tables.set(tableName, columnNames);
 
-      // results = await descs(logger, conn, tables);
-      // console.log(results);
-      // process.exit(1);
-      for (const tableName of tables.keys()) {
-        console.log(`\nsp_help "${tableName}";\n`);
-      }
+      results = await descs(logger, conn, tables);
     }
   }
 
   if (tasks.histograms) {    
     console.log(`CATALOG.SCHEMA.TABLE\tCOLUMN\tROW\tVALUE\tCOUNT`);
-    results = await databases(logger, conn);
+    try {
+      results = await databases(logger, conn);
+      logger.info(`${moduleName}#${methodName}: databases ${inspect(results)}`);
+    } catch (err) {
+      logger.info(`${moduleName}#${methodName}: databases error=${inspect(err)}`);
+      process.exit(99);
+    }
     const tableCatalogs: any[] = [];
     for (const result of results) {
       tableCatalogs.push(result.name);

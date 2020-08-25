@@ -1,0 +1,15 @@
+{
+    "user": "sa",
+    "pass": "reallyStrongPwd123",
+    "server": "localhost",
+    "xdatabase": "develop",
+    "timeout": 360000,
+    "requestTimeout": 360000,
+    "options": {
+        "encrypt": true
+    },
+    "pool": {
+        "max": 1,
+        "min": 1
+    }
+}

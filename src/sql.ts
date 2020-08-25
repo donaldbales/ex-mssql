@@ -9,16 +9,12 @@
 
 import { Connection, ConnectionConfig, ConnectionError } from 'tedious';
 
-// import * as _ from 'lodash';
 import * as fs from 'fs';
 import * as tds from 'tedious';
 import * as util from 'util';
 
-// I create this abstraction in case we want to use a different logger like bunyan
 const loggur: any = {
-  // debug: debug.toLowerCase().indexOf('sqlserver') > -1 ? console.log : (msg: any) => { return; },
   debug: console.log,
-  // error: (msg: any) => { emailer.send(msg, 'ACS ETL Job Error'); console.error(msg); },
   error: console.error,
   info: console.log,
   trace: console.log
@@ -50,6 +46,9 @@ export function connect(logger: any): Promise<any> {
     const port: number = (config.port !== undefined) ?
       Number.parseInt(config.port, 10) : 1433;
 
+// The default value for `config.options.trustServerCertificate` will change from `true` to `false` in the next major 
+// version of `tedious`. Set the value to `true` or `false` explicitly to silence this message. src/sql.js:68:28
+
     const connectionConfig: tds.ConnectionConfig = {
       authentication: {
         options: {
@@ -64,6 +63,7 @@ export function connect(logger: any): Promise<any> {
         // If you're on Windows Azure, you will need this:
         encrypt: true,
         port,
+        trustServerCertificate: true,
         requestTimeout
       },
       server
@@ -251,132 +251,12 @@ export function executeDML(logger: any, conn: any, sql: string, params: any[] = 
   });
 }
 
-// Log the start of a job
-export async function insertEtlJobHistory(logger: any, conn: any, jobName: string): Promise<any> {
-  const methodName: string = 'insertEtlJobHistory';
-  logger.info(`${moduleName}, ${methodName}: start`);
-  const startDate: string = new Date().toISOString();
-  const sql: string = `insert into ETL_JOB_HISTORY (JOB_NAME, START_DATE) output INSERTED.ID values (@JOB_NAME, '${startDate}')`;
-  const params: any[] = [['JOB_NAME', jobName]];
-  let results: any = null;
-  try {
-    results = await executeDML(logger, conn, sql, params);
-    logger.debug(`${moduleName}, ${methodName}: ${inspect(results)}`);
-  } catch (err) {
-    logger.error(`${moduleName}, ${methodName}: ${err}`);
-    process.exit(1);
-  }
-  return results[0].ID;
-}
-
-// Get the last update date for the underlying dataset, for the last successful job
-export async function selectEtlJobHistory(logger: any, conn: any, jobName: string): Promise<any> {
-  const methodName: string = 'selectEtlJobHistory';
-  logger.info(`${moduleName}, ${methodName}: start`);
-  const stopDate: string = new Date().toISOString();
-  const sql: string = `
-    select max(s1.LAST_UPDATE_DATE) last_update_date
-    from   ETL_JOB_HISTORY s1
-    where  s1.JOB_NAME = @JOB_NAME
-    and    s1.START_DATE = (
-      select max(s2.START_DATE)
-      from   ETL_JOB_HISTORY s2
-      where  s2.JOB_NAME = @JOB_NAME
-      and    s2.END_DATE is not NULL)
-    and    s1.END_DATE is not NULL`;
-  const params: any[] = [['JOB_NAME', jobName]];
-  let results: any = null;
-  try {
-    results = await executeDML(logger, conn, sql, params);
-    logger.debug(`${moduleName}, ${methodName}: ${inspect(results)}`);
-  } catch (err) {
-    logger.error(`${moduleName}, ${methodName}: ${err}`);
-    process.exit(1);
-  }
-  let result: string = '1900-01-01T00:00:00Z';
-  if (results &&
-      results instanceof Array &&
-      results.length === 1 &&
-      results[0].last_update_date &&
-      results[0].last_update_date instanceof Date) {
-    result = results[0].last_update_date.toISOString().slice(0, 19) + 'Z';
-  }
-  logger.info(`${moduleName}, ${methodName}: result=${result}`);
-  return result;
-}
-
-// Get the last update date for the specifued dataset
-export async function selectLastUpdateDate(logger: any, conn: any, table: string, column: string): Promise<any> {
-  const methodName: string = 'selectLastUpdateDate';
-  logger.info(`${moduleName}, ${methodName}: start`);
-  const stopDate: string = new Date().toISOString();
-  const sql: string = `select max(${column.toLocaleUpperCase()}) last_update_date from ${table.toLocaleUpperCase()}`;
-  const params: any[] = [];
-  let results: any = null;
-  try {
-    results = await executeDML(logger, conn, sql, params);
-    logger.debug(`${moduleName}, ${methodName}: ${inspect(results)}`);
-  } catch (err) {
-    logger.error(`${moduleName}, ${methodName}: ${err}`);
-    process.exit(1);
-  }
-  let result: string = '1900-01-01T00:00:00Z';
-  if (results &&
-      results instanceof Array &&
-      results.length === 1 &&
-      results[0].last_update_date &&
-      results[0].last_update_date instanceof Date) {
-    const thirtyOneDays: number = 31 * 24 * 60 * 60 * 1000;
-    const lastUpdateDate: Date = new Date(results[0].last_update_date.getTime() - thirtyOneDays);
-    result = lastUpdateDate.toISOString().slice(0, 19) + 'Z';
-  }
-  logger.info(`${moduleName}, ${methodName}: result=${result}`);
-  return result;
-}
-
-// Log the end of a successful job
-export async function updateEtlJobHistory(
-  logger: any, conn: any, id: string, table: string = '', column: string = ''): Promise<any> {
-  const methodName: string = 'updateEtlJobHistory';
-  logger.info(`${moduleName}, ${methodName}: start`);
-  let lastUpdateDate: string = '1900-01-01T00:00:00Z';
-  if (table && column) {
-    lastUpdateDate = await selectLastUpdateDate(logger, conn, table, column);
-  }
-  const endDate: string = new Date().toISOString();
-  const sql: string = `update u set u.REV = u.REV + 1, ` +
-    `u.END_DATE = '${endDate}', u.LAST_UPDATE_DATE = '${lastUpdateDate}' ` +
-    `from ETL_JOB_HISTORY u where u.ID = @ID`;
-  const params: any[] = [['ID', id]];
-  let results: any = null;
-  try {
-    results = await executeDML(logger, conn, sql, params);
-    logger.debug(`${moduleName}, ${methodName}: ${inspect(results)}`);
-  } catch (err) {
-    logger.error(`${moduleName}, ${methodName}: ${err}`);
-    process.exit(1);
-  }
-  return results[0].rowsAffected;
-}
-
 // A main method with no command line parameter management
 async function main(): Promise<any> {
   const methodName: string = 'main';
   loggur.info({ moduleName, methodName }, `Starting...`);
 
   const conn: any = await connect(loggur);
-
-  const lastStartDate: Date = await selectEtlJobHistory(loggur, conn, 'sqlserver');
-
-  loggur.info({ moduleName, methodName, lastStartDate });
-
-  const id: string = await insertEtlJobHistory(loggur, conn, 'sqlserver');
-
-  loggur.info({ moduleName, methodName, id });
-
-  const result: any[] = await updateEtlJobHistory(loggur, conn, id);
-
-  loggur.info({ moduleName, methodName, result });
 
   if (require.main === module) {
     setTimeout(() => { process.exit(0); }, 10000);
