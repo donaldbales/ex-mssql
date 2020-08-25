@@ -1,0 +1,1 @@
+export DOCTOSQL_RDBMS='{"userName":"sa", "password":"reallyStrongPwd123", "server":"localhost", "database":"develop"}'

@@ -1,5 +1,5 @@
 #!/bin/bash
 
-export DOCTOSQL_RDBMS='{"userName":"sa", "password":"reallyStrongPwd123", "server":"localhost", "database":"develop"}'
+. setenv
 
 tsc && node --unhandled-rejections=strict src/index ${1} ${2} ${3} ${4} ${5}

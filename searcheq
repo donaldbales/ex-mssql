@@ -1,5 +1,5 @@
 #!/bin/bash
 
-export DOCTOSQL_RDBMS='{"userName":"sa", "password":"reallyStrongPwd123", "server":"localhost", "database":"develop"}'
+. setenv
 
 tsc && node src/index -t search -s "${1}" > "${1}_eq.txt" 2> "${1}_eq.sql"
