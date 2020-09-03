@@ -1,6 +1,10 @@
 .DS_Store
-procedures.sql
+*.sql
+*.pem
+*.txt
+junk*
 prod*
+setenv
 
 # Logs
 logs
