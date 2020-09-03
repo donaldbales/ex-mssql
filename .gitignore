@@ -110,3 +110,10 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Don hates .env file configs
+setenv
+
+# output files
+histograms.sql
+histograms.txt
