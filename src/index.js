@@ -353,7 +353,7 @@ function search(logger, conn, tables, str = '', like = false) {
 function main(...args) {
     return __awaiter(this, void 0, void 0, function* () {
         const methodName = 'main';
-        const logger = bunyan.createLogger({ "name": "ex-mysql" });
+        const logger = bunyan.createLogger({ "name": "ex-mssql" });
         logger.level('error');
         logger.info(`${moduleName}#${methodName}: Starting...`);
         let results;

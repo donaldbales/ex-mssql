@@ -13,14 +13,14 @@ import * as fs from 'fs';
 import * as tds from 'tedious';
 import * as util from 'util';
 
-const loggur: any = {
+const localLogger: any = {
   debug: console.log,
   error: console.error,
   info: console.log,
   trace: console.log
 };
 
-const moduleName: string = 'index';
+const moduleName: string = 'sql';
 
 // I create this function to make it easy to develop and debug
 function inspect(obj: any, depth: number = 5) {
@@ -252,17 +252,20 @@ export function executeDML(logger: any, conn: any, sql: string, params: any[] = 
 }
 
 // A main method with no command line parameter management
-async function main(): Promise<any> {
+async function main(...args: any[]): Promise<any> {
   const methodName: string = 'main';
-  loggur.info({ moduleName, methodName }, `Starting...`);
+  
+  localLogger.info(`${moduleName}, ${methodName}, Starting...`);
 
-  const conn: any = await connect(loggur);
+  const conn: any = await connect(localLogger);
 
   if (require.main === module) {
     setTimeout(() => { process.exit(0); }, 10000);
   }
 
-  loggur.info({ moduleName, methodName }, `Ending.`);
+  localLogger.info(`${moduleName}, ${methodName}, Ending.`);
+  
+  conn.end();
 }
 
 // Start the program

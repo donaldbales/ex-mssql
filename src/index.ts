@@ -365,7 +365,7 @@ async function search(logger: Logger, conn: Connection, tables: any, str: string
 
 export default async function main(...args: any[]): Promise<any> {
   const methodName: string = 'main';
-  const logger: Logger = bunyan.createLogger({ "name": "ex-mysql" });
+  const logger: Logger = bunyan.createLogger({ "name": "ex-mssql" });
   logger.level('error');
   logger.info(`${moduleName}#${methodName}: Starting...`);
 
